@@ -1,0 +1,10 @@
+langchain
+langchain-openai
+langchain-community
+chromadb 
+openai 
+pypdf 
+python-dotenv
+ebooklib
+beautifulsoup4
+lxml
