@@ -1,5 +1,7 @@
 # AI Reading Companion
 
+[Live Demo](https://ai-reading-companion.streamlit.app)
+
 AI Reading Companion is a Streamlit app that lets you upload a document, ask questions about it, and get AI-generated answers grounded in the document's actual content.
 
 The app supports PDF and EPUB files. After a document is uploaded, it extracts the text, breaks the content into smaller chunks, creates embeddings for those chunks, and stores them in a vector database. When a user asks a question, the app uses retrieval-augmented generation (RAG) to find the most relevant chunks, sends that context to an LLM, and returns an answer with citations to the chunks it used.
@@ -30,7 +32,7 @@ AI Reading Companion demonstrates the kind of applied machine learning engineeri
 - Designing prompts that require citations and reduce hallucination risk
 - Organizing the codebase into clear, reusable modules
 
-For recruiters and hiring managers, this project is meant to show practical AI product instincts: taking an ambiguous problem, choosing the right architecture, and shipping a working prototype with a clean user experience.
+For recruiters and hiring managers, this project is meant to show practical AI product instincts: taking an ambiguous problem, choosing the right architecture, and shipping a deployed working application with a clean user experience.
 
 ## Features
 
@@ -46,7 +48,7 @@ For recruiters and hiring managers, this project is meant to show practical AI p
 
 ## Demo Flow
 
-1. Start the Streamlit app.
+1. Open the [live Streamlit app](https://ai-reading-companion.streamlit.app) or run it locally.
 2. Upload a PDF or EPUB document.
 3. Click **Build Knowledge Base**.
 4. The app parses the document text.
@@ -68,6 +70,7 @@ For recruiters and hiring managers, this project is meant to show practical AI p
 | EPUB parsing | EbookLib, BeautifulSoup |
 | Text chunking | LangChain text splitters |
 | Configuration | python-dotenv |
+| Deployment | Streamlit Community Cloud |
 | Language | Python |
 
 ## Architecture
@@ -132,7 +135,15 @@ Chunks and embeddings are stored in ChromaDB. When a user asks a question, the a
 
 The `Agent` builds a context-rich prompt from retrieved chunks and sends it to OpenAI. The prompt explicitly instructs the model to answer only from the provided context and cite chunk IDs.
 
-## Getting Started
+## Try It Online
+
+The project is deployed and available here:
+
+[https://ai-reading-companion.streamlit.app](https://ai-reading-companion.streamlit.app)
+
+Upload a PDF or EPUB, build the knowledge base, and ask a question about the uploaded document.
+
+## Local Development
 
 ### Prerequisites
 
@@ -210,7 +221,7 @@ This project highlights experience with:
 
 ## Current Status
 
-This is a functional prototype. It supports the core workflow from upload to citation-backed question answering, with room for production hardening.
+This is a deployed functional application. It supports the core workflow from upload to citation-backed question answering, with room for continued production hardening.
 
 The current `tests/` folder is a scaffold for future automated tests. The next best test additions would cover parser behavior, chunking consistency, vector search shape, and agent prompt formatting.
 
@@ -226,7 +237,6 @@ Potential next improvements:
 - Add richer error handling for malformed PDFs and EPUBs
 - Add automated tests for parsing, chunking, and retrieval
 - Add evaluation examples for answer quality and citation accuracy
-- Deploy the app for easy public demo access
 
 ## Design Notes
 
