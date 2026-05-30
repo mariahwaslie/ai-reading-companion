@@ -8,3 +8,6 @@ python-dotenv
 ebooklib
 beautifulsoup4
 lxml
+sentence-transformers
+torchvision
+nltk

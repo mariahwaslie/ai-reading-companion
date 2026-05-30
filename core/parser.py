@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from pypdf import PdfReader
 
 
-def clean_text(text: str) -> str:
+def clean_text(text: str):
     # Remove extra whitespace and newlines
     return " ".join(text.split())
 
@@ -21,7 +21,7 @@ def parse_pdf(filepath: str) -> str:
     return "\n\n".join(pages) # combines all the pages and then returns them 
 
 #parse epub files 
-def parse_epub(filepath: str) -> str:
+def parse_epub(filepath: str):
     book = epub.read_epub(filepath)
     chapters = []
     for item in book.get_items():
@@ -38,11 +38,12 @@ def parse_epub(filepath: str) -> str:
             except Exception:
                 # skip anything broken or non-decodable
                 continue
+    print(chapters[:100])
 
     return "\n\n".join(chapters)
 
 
 if __name__ == "__main__":
     book_text = parse_epub("sample_books/pg3296-images-3.epub")
-    print(f"Got {len(book_text)} characters")
-    print(book_text[:500])  # preview first 100 chars
+    # print(f"Got {len(book_text)} characters")
+    # print(book_text[:500])  # preview first 100 chars
