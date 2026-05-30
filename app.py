@@ -43,13 +43,18 @@ if uploaded_file is not None:
 
     if st.button("Build Knowledge Base"):
         with st.spinner("Saving file..."):
-            file_bytes = uploaded_file.getvalue()
+            
+            suffix = Path(uploaded_file.name).suffix
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(uploaded_file.getbuffer())
+                temp_path = tmp.name
         
         with st.spinner("Parsing book..."):
             if Path(uploaded_file.name).suffix.lower() == ".pdf":
-                text= parse_pdf(file_bytes)
+                text= parse_pdf(temp_path)
             elif Path(uploaded_file.name).suffix.lower() == ".epub":
-                text = parse_epub(file_bytes)
+                text = parse_epub(temp_path)
             else: 
                 st.write("Unsupported file type. Please upload an EPUB or PDF.")
                 st.stop()
