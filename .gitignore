@@ -1,2 +1,16 @@
 .env 
 sample_books/*
+__pycache__/
+__pycache__
+core/__pycache__/
+core/__pycache__/*
+__pycache__/*
+*.py[cod]
+/venv
+_pycache__/
+.DS_Store
+.streamlit/
+
+# Temporary uploaded files
+temp_*.epub
+temp_*.pdf
