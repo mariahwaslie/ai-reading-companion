@@ -2,13 +2,14 @@ from pathlib import Path
 import streamlit as st
 import os
 from dotenv import load_dotenv
-
+import tempfile
 from core.parser import parse_epub, parse_pdf
 from core.chunker import chunk_text
 from core.vectorstore import VectorStore
 from core.agent import Agent
 
 UPLOAD_DIR = Path("sample_books/")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # -----------------------------
 # Setup
@@ -42,15 +43,13 @@ if uploaded_file is not None:
 
     if st.button("Build Knowledge Base"):
         with st.spinner("Saving file..."):
-            temp_path = UPLOAD_DIR / uploaded_file.name
-            with open(temp_path, "wb") as f:
-                f.write(uploaded_file.read())
+            file_bytes = uploaded_file.getvalue()
         
         with st.spinner("Parsing book..."):
             if Path(uploaded_file.name).suffix.lower() == ".pdf":
-                text= parse_pdf(temp_path)
+                text= parse_pdf(file_bytes)
             elif Path(uploaded_file.name).suffix.lower() == ".epub":
-                text = parse_epub(temp_path)
+                text = parse_epub(file_bytes)
             else: 
                 st.write("Unsupported file type. Please upload an EPUB or PDF.")
                 st.stop()

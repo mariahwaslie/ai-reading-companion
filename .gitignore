@@ -1,6 +1,5 @@
 .env 
-*.pdf
-*.epub
+sample_books/*
 __pycache__/
 __pycache__
 core/__pycache__/
