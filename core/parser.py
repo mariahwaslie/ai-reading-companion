@@ -14,10 +14,11 @@ def parse_pdf(filepath: str) -> str:
     reader = PdfReader(filepath)
     pages = []
     for page in reader.pages:
-        text = page.extract_text() + "\n"
+        text = page.extract_text()
         if text:
             text = re.sub(r'\s+', ' ', text).strip() # Normalize whitespace
-            pages.append(text) # add to pages 
+            if text:
+                pages.append(text) # add to pages 
     return "\n\n".join(pages) # combines all the pages and then returns them 
 
 #parse epub files 
@@ -31,15 +32,13 @@ def parse_epub(filepath: str):
                 html = item.get_content().decode("utf_8")
 
                 soup = BeautifulSoup(html, 'html.parser')
-                text = clean_text(soup.get_text())
+                text = clean_text(soup.get_text(" "))
 
                 chapters.append(text)
                 
             except Exception:
                 # skip anything broken or non-decodable
                 continue
-    print(chapters[:100])
-
     return "\n\n".join(chapters)
 
 

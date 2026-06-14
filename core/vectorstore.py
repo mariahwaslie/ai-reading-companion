@@ -38,9 +38,7 @@ class VectorStore:
         query_embedding = self.model.encode([query]).tolist()
 
         results = self.collection.query(
-
             query_embeddings=query_embedding,
-
             n_results=k
 
         )
