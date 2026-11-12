@@ -248,33 +248,32 @@ These were tested with retrieval-only runs against the current setup and not ado
 
 ### Results
 
-Against the golden set after its manual review (35 questions: 29 answerable, 6 unanswerable). The notes below say how each number was produced.
+Three full runs against the reviewed golden set (35 questions: 29 answerable, 6 unanswerable). Each number is the average over the 3 runs, with min–max in brackets. The app used `gpt-4.1-mini` at its default temperature, and `gpt-4.1` was the judge.
 
 | Metric | Result |
 | --- | --- |
 | hit@5 | 0.72 (21 of 29 answerable questions) |
 | hit@15 (a gold chunk reaches the model) | 0.83 (24 of 29) |
 | MRR@15 | 0.53 |
-| End-to-end passes | 27.7 of 35 (27–29) |
-| Faithfulness | 0.84 (0.83–0.87) |
-| Refusal rate on unanswerable questions | 61% (50–67%) |
-| Citation accuracy | 0.60 (0.58–0.63) |
+| End-to-end passes | 28.3 of 35 (28–29) |
+| Faithfulness | 0.86 (0.82–0.88) |
+| Answer relevance (1–5) | 4.75 (4.62–4.83) |
+| Correctness on the 29 answerable questions | 21.3 correct (20–23), 5.3 partial (5–6), 2.3 incorrect (1–3) |
+| Refusal rate on the 6 unanswerable questions | 61% (50–67%) |
+| Citation accuracy | 0.62 (0.61–0.63) |
 
-How these were produced:
+How to read these numbers:
 
-- **Retrieval** (hit@5, hit@15, MRR) comes from a retrieval-only run against the reviewed golden set. The eval's exact search gives the same ranking every time, so these have no range.
-- **Answer quality** (passes, faithfulness, refusal rate, citation accuracy) is the average over 3 full runs, with min–max in brackets. The app used `gpt-4.1-mini` at its default temperature, and `gpt-4.1` was the judge.
-- **Those runs predate the review.** The review changed only q23, adding chunk 135 to its gold chunks.
-  - Re-checking every answer in those runs against the reviewed gold chunks changes no pass/fail result.
-  - Citation accuracy was recomputed against the reviewed set.
-  - The chunks those runs sent to the model give the same hit@5 and hit@15 results as the retrieval run.
-  - A fresh 3-run evaluation against the reviewed set is still to do.
-- **Precision:** with 35 questions, one question moves a rate by about 3 percentage points. The judge is itself a model, so treat its verdicts as estimates. The HTML report shows its reasoning for every answer.
+- **Retrieval** uses the eval's exact search over the stored vectors. It gives the same ranking in every run, so hit@k and MRR have no range.
+- **Precision:** with 35 questions, one question moves a rate by about 3 percentage points.
+- **The judge** is itself a model, so treat its verdicts as estimates. The HTML report shows its reasoning for every answer.
 
-Seven questions fail in most runs:
+Six questions fail in at least two of the three runs:
 
 - **4 retrieval misses:** the gold chunk never reaches the model. The book's opening line, for example, ranks 208th.
-- **3 generation problems:** two answers to unanswerable questions that draw on outside knowledge, and one two-part answer with unsupported claims.
+- **2 generation problems:** unanswerable questions that the app answers anyway. It names the mother of Augustine's son as "Monnica", who was in fact his mother, and says his son Adeodatus was born in Milan.
+
+Three more questions failed in one run out of three.
 
 ## Key Implementation Details
 
@@ -313,7 +312,6 @@ Potential next improvements:
 - Handle malformed files more gracefully
 - Load the embedding model once per app process instead of once per session
 - Add tests for chunking, the `Agent` and prompt formatting
-- Re-run the 3-run answer evaluation against the reviewed golden set
 - Reduce answers that use outside knowledge on questions the document can't answer
 
 ## Design Notes
