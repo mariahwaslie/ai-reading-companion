@@ -14,3 +14,6 @@ _pycache__/
 # Temporary uploaded files
 temp_*.epub
 temp_*.pdf
+
+# Evaluation run outputs
+eval/results/

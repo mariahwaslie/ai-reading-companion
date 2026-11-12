@@ -1,0 +1,359 @@
+{
+  "meta": {
+    "description": "Hand-checkable golden set for the RAG pipeline. Drafted from the book text; every entry needs a human review before the numbers are trusted.",
+    "book": "sample_books/pg3296-images-3.epub",
+    "book_title": "The Confessions of St. Augustine, trans. E. B. Pusey (Project Gutenberg #3296)",
+    "book_sha256": "2f46922c258a23eb2c41703e21168e14c0e1dbe05aa3e1a261ac1e1b17c81ed5",
+    "chunker": {"chunk_size": 2000, "chunk_overlap": 100},
+    "num_chunks": 335,
+    "chunk_ids_history": "2026-11-11: remapped from the evidence quotes after the parser began stripping Project Gutenberg boilerplate (347 -> 335 chunks; most IDs shifted down by 1).",
+    "chunk_ids_note": "chunk_ids are the chunk_num values VectorStore.build_index assigns, i.e. positions in chunk_text(parse_epub(book)); parse_epub strips the Project Gutenberg header and license first. They shift if the book file, parser or chunker settings change. run_eval.py checks the evidence quotes on every run and warns when they no longer sit in the listed chunks.",
+    "groups": {"original 20": ["q01", "q02", "q03", "q04", "q05", "q06", "q07", "q08", "q09", "q10", "q11", "q12", "q13", "q14", "q15", "q16", "q17", "q18", "q19", "q20"], "new 15": ["q21", "q22", "q23", "q24", "q25", "q26", "q27", "q28", "q29", "q30", "q31", "q32", "q33", "q34", "q35"]},
+    "fields": {
+      "question": "What a reader would type into the app.",
+      "reference_answer": "What a correct answer should say, written from the book text.",
+      "chunk_ids": "Chunks that contain the answer (any one of them counts as a retrieval hit). Empty for unanswerable questions.",
+      "evidence": "Short verbatim quotes from those chunks, used to detect chunk-ID drift and to help you review.",
+      "answerable": "false = the book does not contain the answer; the app should say it doesn't know.",
+      "needs_review": "Set to false once you have checked the entry by hand."
+    }
+  },
+  "entries": [
+    {
+      "id": "q01",
+      "question": "According to the opening of the Confessions, why is the human heart restless?",
+      "reference_answer": "Because God made us for Himself, so our heart is restless until it rests in God: \"Thou madest us for Thyself, and our heart is restless, until it repose in Thee.\"",
+      "chunk_ids": [0],
+      "evidence": ["Thou madest us for Thyself, and our heart is restless, until it repose in Thee"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q02",
+      "question": "What did Augustine and his friends steal as boys, and what did they do with it?",
+      "reference_answer": "Late one night they shook and robbed a pear tree near his family's vineyard and carried off huge loads of pears that were neither attractive nor tasty. They only tasted them and flung the rest to the hogs. Augustine says he stole not out of hunger but for the pleasure of the theft and the sin itself.",
+      "chunk_ids": [25],
+      "evidence": ["A pear tree there was near our vineyard", "to fling to the very hogs"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q03",
+      "question": "Which book by Cicero first stirred Augustine's love of wisdom, and how old was he when he read it?",
+      "reference_answer": "Cicero's Hortensius, a book exhorting the reader to philosophy. He read it in his nineteenth year (his father had died two years earlier), and it turned his desires toward wisdom and toward God.",
+      "chunk_ids": [35, 151],
+      "evidence": ["This book of his contains an exhortation to philosophy", "since my nineteenth, when, upon the reading of Cicero's Hortensius"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q04",
+      "question": "What did the bishop tell Monica when she begged him to talk her son out of Manichaeism?",
+      "reference_answer": "He declined to argue with Augustine, telling her to leave him alone for a while and pray, since he would discover the error himself by reading. When she kept pressing him with tears, he said: \"Go thy ways and God bless thee, for it is not possible that the son of these tears should perish.\" Monica took this as if it had come from heaven.",
+      "chunk_ids": [47],
+      "evidence": ["it is not possible that the son of these tears should perish"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q05",
+      "question": "For how long, and between what ages, was Augustine involved with the Manichees?",
+      "reference_answer": "About nine years, from his nineteenth year to his twenty-eighth (\"from my nineteenth year to my eight-and-twentieth\").",
+      "chunk_ids": [47, 74],
+      "evidence": ["For this space of nine years (from my nineteenth year to my eight-and-twentieth)", "all those nine years, wherein with unsettled mind I had been their disciple"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q06",
+      "question": "What happened to Augustine's close friend from his home town after the friend was baptized while unconscious?",
+      "reference_answer": "The friend, a childhood school-fellow whom Augustine had drawn into Manichaeism, lay senseless with a fever and was baptized without knowing it. He recovered, and when Augustine tried to joke about the baptism, the friend recoiled and told him to stop if he wanted to stay his friend. A few days later, while Augustine was away, the fever returned and the friend died, leaving Augustine overwhelmed with grief.",
+      "chunk_ids": [52, 53],
+      "evidence": ["he was baptised, unknowing", "he was attacked again by the fever, and so departed"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q07",
+      "question": "Why was Augustine disappointed when he finally met the Manichaean bishop Faustus?",
+      "reference_answer": "Faustus was eloquent and pleasant to listen to, but when Augustine questioned him he found him ignorant of the liberal sciences apart from grammar, and that only at an ordinary level. His eloquence came from a little reading of Cicero, Seneca, some poets and his sect's books. Augustine therefore gave up hope that Faustus could resolve the astronomical difficulties he had with the Manichaean books.",
+      "chunk_ids": [75, 76],
+      "evidence": ["utterly ignorant of liberal sciences, save grammar", "I began to despair of his opening and solving the difficulties which perplexed me"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Chunk 77 describes the aftermath ('My zeal for the writings of Manichaeus being thus blunted') without saying why, so it is not listed as gold."
+    },
+    {
+      "id": "q08",
+      "question": "Why did Augustine decide to move from Carthage to Rome to teach?",
+      "reference_answer": "Mainly because he heard that students in Rome were quieter and kept under stricter discipline, whereas students in Carthage were disorderly and would burst into classes uninvited. The higher earnings and honours his friends promised were only a lesser reason.",
+      "chunk_ids": [78],
+      "evidence": ["young men studied there more peacefully", "at Carthage there reigns among the scholars a most disgraceful and unruly licence"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q09",
+      "question": "What unusual reading habit did Augustine notice in Ambrose?",
+      "reference_answer": "Ambrose read silently: his eyes moved over the page and his heart searched out the meaning, but his voice and tongue were at rest. Visitors would sit silently watching him read to himself and then leave without disturbing him.",
+      "chunk_ids": [92],
+      "evidence": ["his voice and tongue were at rest"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Chunk 92 never names Ambrose, so this tests semantic rather than keyword retrieval."
+    },
+    {
+      "id": "q10",
+      "question": "How did Alypius become addicted to the gladiatorial shows?",
+      "reference_answer": "While studying law in Rome, he was dragged into the amphitheatre against his will by friends. He kept his eyes shut, saying he would be absent while present, but when the whole crowd roared at a fighter's fall, curiosity made him open his eyes. He saw the blood, could not look away, and was seized by a frenzy for the shows that he carried away with him.",
+      "chunk_ids": [101, 102],
+      "evidence": ["into the Amphitheatre, during these cruel and deadly shows", "a mighty cry of the whole people striking him strongly"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q11",
+      "question": "Who was Victorinus, and who told Augustine about him?",
+      "reference_answer": "Victorinus was a celebrated former professor of rhetoric at Rome, learned in the liberal sciences, who had translated books of the Platonists into Latin, taught many senators and been honoured with a statue in the Roman Forum. After long defending the pagan gods, he became a Christian in old age. Simplicianus, who had known him well at Rome, told Augustine his story.",
+      "chunk_ids": [139, 140],
+      "evidence": ["Victorinus, sometime Rhetoric Professor of Rome", "he spoke of Victorinus himself, whom while at Rome he had most intimately known"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Chunks 141-145 continue Victorinus's conversion story; consider whether they should count as hits."
+    },
+    {
+      "id": "q12",
+      "question": "What did Augustine pray for as a young man regarding chastity?",
+      "reference_answer": "He prayed, \"Give me chastity and continency, only not yet,\" because he feared God would answer too quickly and cure a lust he wanted satisfied rather than extinguished.",
+      "chunk_ids": [151],
+      "evidence": ["Give me chastity and continency, only not yet"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q13",
+      "question": "During the garden scene of his conversion, what did the child's voice say, and what passage did Augustine read in response?",
+      "reference_answer": "From a neighbouring house he heard a child's voice chanting, \"Take up and read; Take up and read.\" Taking it as a command from God, and remembering how Antony was converted by a Gospel reading, he opened the book of the Apostle and read: \"Not in rioting and drunkenness, not in chambering and wantonness, not in strife and envying; but put ye on the Lord Jesus Christ, and make not provision for the flesh, in concupiscence.\" At once the darkness of doubt vanished.",
+      "chunk_ids": [160, 161],
+      "evidence": ["Take up and read; Take up and read", "Not in rioting and drunkenness, not in chambering and wantonness"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q14",
+      "question": "Who was Adeodatus, and how old was he when he was baptized with Augustine?",
+      "reference_answer": "Adeodatus was Augustine's son, \"born after the flesh, of my sin.\" He was not quite fifteen when he joined Augustine and Alypius and was baptized with them. Augustine says his intellect surpassed many grave and learned men, and that he died young.",
+      "chunk_ids": [171, 172],
+      "evidence": ["We joined with us the boy Adeodatus, born after the flesh, of my sin", "He was not quite fifteen", "and we were baptised"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q15",
+      "question": "How old were Monica and Augustine when she died?",
+      "reference_answer": "Monica died on the ninth day of her illness, in the fifty-sixth year of her age, when Augustine was in his thirty-third year. She died at Ostia while they were on their way back to Africa.",
+      "chunk_ids": [183],
+      "evidence": ["the fifty-sixth year of her age, and the three-and-thirtieth of mine"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Chunk 174 also says she died at Ostia but gives no ages, so it is not listed as gold."
+    },
+    {
+      "id": "q16",
+      "question": "What did Monica ask of her sons regarding her burial?",
+      "reference_answer": "She told them to lay her body anywhere and not to let its care trouble them; her only request was that they remember her at the Lord's altar wherever they were.",
+      "chunk_ids": [182],
+      "evidence": ["this only I request, that you would remember me at the Lord's altar"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q17",
+      "question": "How does Augustine describe the difficulty of defining time?",
+      "reference_answer": "\"What then is time? If no one asks me, I know: if I wish to explain it to one that asketh, I know not.\" We speak of time familiarly and understand it when we hear it mentioned, yet cannot readily explain it. He adds that there would be no past time if nothing passed away, no future time if nothing were coming, and no present time if nothing were.",
+      "chunk_ids": [247],
+      "evidence": ["If no one asks me, I know: if I wish to explain it to one that asketh, I know not"],
+      "answerable": true,
+      "needs_review": true
+    },
+    {
+      "id": "q18",
+      "question": "What was the name of the woman Augustine lived with for years, the mother of his son?",
+      "reference_answer": "The book does not give her name. It describes her being torn from his side as a hindrance to his planned marriage, but never names her.",
+      "chunk_ids": [],
+      "evidence": [],
+      "answerable": false,
+      "needs_review": true,
+      "notes": "Deliberately tempting: chunk 111 discusses her, so the model has related context but no name."
+    },
+    {
+      "id": "q19",
+      "question": "How and in what year did Augustine die?",
+      "reference_answer": "The book does not say. The Confessions was written during Augustine's lifetime and does not describe his death.",
+      "chunk_ids": [],
+      "evidence": [],
+      "answerable": false,
+      "needs_review": true,
+      "notes": "The front matter says 'AD 401' (the date of the work), which a model might misread as a death date."
+    },
+    {
+      "id": "q20",
+      "question": "What did Augustine write about the sack of Rome by the Goths?",
+      "reference_answer": "The book does not discuss the sack of Rome by the Goths.",
+      "chunk_ids": [],
+      "evidence": [],
+      "answerable": false,
+      "needs_review": true
+    },
+    {
+      "id": "q21",
+      "question": "How was Alypius cured of his passion for the circus races, and how did he respond to Augustine's conversion in the garden?",
+      "reference_answer": "While Augustine was teaching, he used a mocking comparison to the circus races to explain a passage; Alypius took it as aimed at him (Augustine hadn't meant it so), shook off his passion for the games and never went back. In the garden, Alypius asked to see what Augustine had read, read on to the next words, \"him that is weak in the faith, receive,\" applied them to himself and joined Augustine in his resolution without delay.",
+      "chunk_ids": [100, 101, 161],
+      "evidence": ["a likeness from the Circensian races occurred to me", "all the filths of the Circensian pastimes flew off from him", "him that is weak in the faith, receive"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: two parts of the book (Books VI and VIII)."
+    },
+    {
+      "id": "q22",
+      "question": "What does the book say about Augustine's father's financial means, and how did Monica deal with his temper and eventually win him over?",
+      "reference_answer": "His father was only a poor freeman of Thagaste, who paid for Augustine's further studies at Carthage out of determination rather than wealth. Monica never resisted her hot-tempered husband in deed or even in word, explaining herself only once he had calmed down, so he never struck her. Toward the very end of his life she won him over to God.",
+      "chunk_ids": [22, 177, 178],
+      "evidence": ["rather by the resolution than the means of my father, who was but a poor freeman of Thagaste", "she had learnt not to resist an angry husband, not in deed only, but not even in word", "her own husband, towards the very end of his earthly life, did she gain unto Thee"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: two parts of the book (Books II and IX)."
+    },
+    {
+      "id": "q23",
+      "question": "What did Augustine find missing from Cicero's Hortensius, and what did he find missing from the books of the Platonists?",
+      "reference_answer": "The Hortensius roused his love of wisdom, but the name of Christ was not in it, so it could not take full hold of him. In the books of the Platonists he found, in substance, that in the beginning was the Word and the Word was with God, but not that the Word was made flesh and dwelt among us, nor that Christ died for the ungodly.",
+      "chunk_ids": [36, 125, 126],
+      "evidence": ["this alone checked me thus unkindled, that the name of Christ was not in it", "But that the Word was made flesh, and dwelt among us, I read not there", "But that in due time He died for the ungodly"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: two parts of the book (Books III and VII). Chunk 35 introduces the Hortensius and chunks 134-135 also discuss what the Platonist books contained; in the first 3-repeat run the app answered from those without any gold chunk. Check whether they should count as gold."
+    },
+    {
+      "id": "q24",
+      "question": "How did Augustine's grief over his friend's death in his youth differ from how he grieved for his mother?",
+      "reference_answer": "When his friend died, his heart was utterly darkened, everything reminded him of death, and he found sweetness only in tears; he finally fled his home town of Thagaste for Carthage. When his mother died, he held back his tears by force of will, even at her burial, though he was inwardly heavy with sorrow. Only later, alone before God, did he let himself weep for her, for a small part of an hour.",
+      "chunk_ids": [53, 55, 185, 186],
+      "evidence": ["At this grief my heart was utterly darkened", "And thus from Thagaste, I came to Carthage", "we went and returned without tears", "I gave way to the tears which I before restrained"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: two parts of the book (Books IV and IX)."
+    },
+    {
+      "id": "q25",
+      "question": "What happened to the mother of Augustine's son, and what became of the son?",
+      "reference_answer": "She was torn from Augustine as a hindrance to his planned marriage and returned to Africa, vowing never to know another man, leaving their son with him. The son, Adeodatus, was baptized together with Augustine when not quite fifteen, showed remarkable intelligence, and died young.",
+      "chunk_ids": [111, 171, 172],
+      "evidence": ["she returned to Afric, vowing unto Thee never to know any other man, leaving with me my son by her", "We joined with us the boy Adeodatus, born after the flesh, of my sin", "Soon didst Thou take his life from the earth"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: two parts of the book (Books VI and IX)."
+    },
+    {
+      "id": "q26",
+      "question": "Why did young Augustine dislike the poems he was made to study in a second language, and what does he conclude about learning under pressure?",
+      "reference_answer": "He hated studying Greek and Homer because of the difficulty of a foreign tongue, which he was pushed to learn with cruel threats and punishments; that difficulty spoiled the sweetness of the stories. He had learned Latin without fear, among nurses and friends, and concludes that free curiosity is a stronger force for learning than frightening compulsion.",
+      "chunk_ids": [14, 15],
+      "evidence": ["the difficulty of a foreign tongue, dashed, as it were, with gall all the sweetness of Grecian fable", "a free curiosity has more force in our learning these things, than a frightful enforcement"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: worded differently from the book ('second language' and 'poems' for Greek and Homer)."
+    },
+    {
+      "id": "q27",
+      "question": "What does Augustine find strange about people who go to the theatre to watch sad stories?",
+      "reference_answer": "He asks why people want to be made sad by watching tragic events they would never want to suffer themselves: as spectators they want to feel sorrow, and that sorrow is their pleasure. He calls this a miserable madness, and says people are more moved the less free they are of such passions themselves.",
+      "chunk_ids": [32],
+      "evidence": ["Why is it, that man desires to be made sad, beholding doleful and tragical things"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: worded differently from the book ('theatre', 'sad stories' for stage-plays and tragical things)."
+    },
+    {
+      "id": "q28",
+      "question": "What story about two babies born at the same moment convinced Augustine that horoscopes are worthless?",
+      "reference_answer": "Firminus told him that his father and a friend, both keen on astrology, recorded births precisely. Firminus's mother and a slave woman of the friend gave birth at the same instant, so the two babies had identical constellations. Yet Firminus was born to a distinguished family and lived in wealth and honour, while the other child remained a slave. The same stars could not truthfully predict both lives, so Augustine concluded that correct predictions came by chance, not by the art.",
+      "chunk_ids": [121, 122],
+      "evidence": ["both were delivered at the same instant", "a lineage the most abject, a slavish condition"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: worded differently from the book ('horoscopes' for constellations and the 'so-called art')."
+    },
+    {
+      "id": "q29",
+      "question": "After leaving the Manichees, did Augustine come to think of wickedness as a real thing that exists in its own right?",
+      "reference_answer": "No. He concluded that everything that exists is good insofar as it exists, so evil is not a substance; if it were a substance it would be good. He found iniquity to be no substance but the perversion of the will, turning away from God toward lower things.",
+      "chunk_ids": [129, 131],
+      "evidence": ["That evil then which I sought, whence it is, is not any substance", "found it to be no substance, but the perversion of the will"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: worded differently from the book ('wickedness', 'a real thing in its own right' for evil and substance). Chunks 84, 117 and 156 also discuss evil as a substance; in the first 3-repeat run the app answered correctly from them without any gold chunk. Check whether they should count as gold."
+    },
+    {
+      "id": "q30",
+      "question": "What did Augustine do when a toothache left him unable to speak, and what happened?",
+      "reference_answer": "He wrote on wax tablets asking all the friends present to pray for him. As soon as they knelt down in prayer, the pain went away, which astonished and frightened him.",
+      "chunk_ids": [170],
+      "evidence": ["Thou didst then torment me with pain in my teeth", "And this I wrote on wax, and gave it them to read"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: small specific detail (Book IX)."
+    },
+    {
+      "id": "q31",
+      "question": "What health problem made Augustine think he would have to give up teaching?",
+      "reference_answer": "That summer his lungs began to give way from too much literary work: he had trouble breathing deeply, pain in his chest, and could not speak fully or at length, which almost forced him to lay down teaching or at least interrupt it.",
+      "chunk_ids": [164],
+      "evidence": ["my lungs began to give way, amid too great literary labour"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: small specific detail (Book IX)."
+    },
+    {
+      "id": "q32",
+      "question": "What did a maid-servant call Monica when she was a girl, and what habit had led to it?",
+      "reference_answer": "She called her a \"wine-bibber.\" When Monica was sent to draw wine from the cask, she had begun sipping a little, out of youthful high spirits rather than desire, and by adding a little each day had come to drink her small cup almost full. Stung by the taunt, she saw the fault and gave it up at once.",
+      "chunk_ids": [175, 176],
+      "evidence": ["she sipped a little with the tip of her lips", "calling her wine-bibber"],
+      "answerable": true,
+      "needs_review": true,
+      "notes": "Type: small specific detail (Book IX)."
+    },
+    {
+      "id": "q33",
+      "question": "What was the name of Augustine's friend whose death in his youth plunged him into grief?",
+      "reference_answer": "The book does not name him. It describes him as a childhood school-fellow from Augustine's home town and compares their bond to Orestes and Pylades, but never gives his name.",
+      "chunk_ids": [],
+      "evidence": [],
+      "answerable": false,
+      "needs_review": true,
+      "notes": "Type: unanswerable. Tempting: chunks 52-55 tell his story without a name, and chunk 53 mentions Orestes and Pylades."
+    },
+    {
+      "id": "q34",
+      "question": "What was the name of the bishop who told Monica that 'the son of these tears' would not perish?",
+      "reference_answer": "The book does not name him; it calls him only \"a certain Bishop brought up in Thy Church.\"",
+      "chunk_ids": [],
+      "evidence": [],
+      "answerable": false,
+      "needs_review": true,
+      "notes": "Type: unanswerable. Tempting: a model may guess Ambrose, who appears later in the book."
+    },
+    {
+      "id": "q35",
+      "question": "In what city was Augustine's son Adeodatus born?",
+      "reference_answer": "The book does not say where Adeodatus was born.",
+      "chunk_ids": [],
+      "evidence": [],
+      "answerable": false,
+      "needs_review": true,
+      "notes": "Type: unanswerable. Tempting: a model may know the answer from outside the book."
+    }
+  ]
+}
