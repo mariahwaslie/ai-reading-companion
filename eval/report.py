@@ -464,6 +464,11 @@ def build(args):
                   f'<strong>Golden set not yet human-reviewed.</strong>'
                   f'{unreviewed} of {len(golden["entries"])} entries are still marked <code>needs_review</code>. '
                   f'The scores depend on reference answers and gold chunks a person hasn\'t checked yet.</div></div>')
+    elif golden["meta"].get("review") and not manifest.get("golden_review"):
+        banner = (f'<div class="banner" role="note"><span aria-hidden="true">⚠️</span><div>'
+                  f'<strong>This run was scored against the golden set before its review.</strong>'
+                  f'The golden set was {esc(golden["meta"]["review"])}; rerun the eval to score against the '
+                  f'reviewed set. {esc(golden["meta"].get("review_changes", ""))}</div></div>')
 
     exact = manifest.get("search") == "exact"
     search_note = ("Retrieval used an exact search over every chunk, so it is identical in every run." if exact else
@@ -473,6 +478,21 @@ def build(args):
                     f"their retrieval numbers are identical. " if n_runs > 1 else "Single run. ") + search_note
     no_p15 = [r["label"] for r in runs if not any(summary.summarize(rows).get("precision@15") is not None
                                                   for rows in r["reps"])]
+    def names(labels):
+        return ", ".join(f"“{label}”" for label in labels)
+
+    fewer = [r["label"] for r in runs if r["manifest"].get("questions", 0) < manifest.get("questions", 0)]
+    review = golden["meta"].get("review")
+    draft = [r["label"] for r in runs if review and not r["manifest"].get("golden_review")]
+    approx = [r["label"] for r in runs if r["manifest"].get("search") != "exact"]
+    history_note = " ".join(filter(None, [
+        f"{names(fewer)} covered fewer questions and used the original faithfulness judge, so compare the "
+        f"“only” columns in the table for like-for-like numbers on the same questions." if fewer else "",
+        f"{names(draft)} were scored against the golden set as drafted, before it was {review}. "
+        f"{golden['meta'].get('review_changes', '')}" if draft and len(draft) < len(runs) else "",
+        f"{names(approx)} retrieved with the app's approximate Chroma index; later runs use an exact search."
+        if approx and len(approx) < len(runs) else "",
+    ]))
     p15_note = (f"{' and '.join(no_p15)} saved only the top 5 retrieved chunks, so precision@15 is blank for "
                 f"{'them' if len(no_p15) > 1 else 'it'}." if no_p15 else "")
     flips_note = (f"Questions marked * changed between pass and fail across repeats: {', '.join(flipped)}."
@@ -485,7 +505,8 @@ def build(args):
 <h1>RAG evaluation report</h1>
 <p class="meta">Run: <strong>{esc(current["label"])}</strong> · {esc(manifest["created"].replace("T", " "))}
  · {esc(manifest.get("questions", len(reps[0])))} questions · judge {esc(manifest.get("judge_model") or "-")}
- · book: {esc(golden["meta"].get("book_title", ""))}</p>
+ · book: {esc(golden["meta"].get("book_title", ""))}
+ · golden set: {esc(manifest.get("golden_review") or "draft (before review)")}</p>
 {banner}
 <p class="caption">{esc(repeats_note)}</p>
 {cards_html(golden, reps)}
@@ -516,8 +537,7 @@ show min–max. A question fails below {metrics.FAITHFULNESS_MIN}. "No factual c
 
 <h2>Run comparison</h2>
 <p class="caption">Headline metrics for every saved run, oldest first; whiskers show min–max for repeated runs.
-Earlier runs used the original faithfulness judge and fewer questions, so compare the "only" columns in the
-table for like-for-like numbers on the same questions. {esc(p15_note)}</p>
+{esc(history_note)} {esc(p15_note)}</p>
 <figure>{comparison_chart(runs)}</figure>
 {comparison_table(runs, golden, current)}
 

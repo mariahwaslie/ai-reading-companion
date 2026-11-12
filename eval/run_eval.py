@@ -716,6 +716,7 @@ def main():
         "hybrid_latency": hybrid.latency() if hybrid else None,
         "csv_files": [p.name for p in out_paths],
         "golden_set": str(args.golden.resolve().relative_to(REPO_ROOT)),
+        "golden_review": golden["meta"].get("review"),
     }
     (RESULTS_DIR / f"{prefix}_{stamp}.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print_summary(golden, runs, args.depth, args.judge_model, warnings, out_paths, search)

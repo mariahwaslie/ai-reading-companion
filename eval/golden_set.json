@@ -1,11 +1,13 @@
 {
   "meta": {
-    "description": "Hand-checkable golden set for the RAG pipeline. Drafted from the book text; every entry needs a human review before the numbers are trusted.",
+    "description": "Hand-checkable golden set for the RAG pipeline. Drafted from the book text, then checked entry by entry by hand.",
     "book": "sample_books/pg3296-images-3.epub",
     "book_title": "The Confessions of St. Augustine, trans. E. B. Pusey (Project Gutenberg #3296)",
     "book_sha256": "2f46922c258a23eb2c41703e21168e14c0e1dbe05aa3e1a261ac1e1b17c81ed5",
     "chunker": {"chunk_size": 2000, "chunk_overlap": 100},
     "num_chunks": 335,
+    "review": "reviewed 2026-11-12",
+    "review_changes": "All 35 entries checked by hand. q23: added chunk 135 and its evidence quote. The other 34 entries were kept as drafted.",
     "chunk_ids_history": "2026-11-11: remapped from the evidence quotes after the parser began stripping Project Gutenberg boilerplate (347 -> 335 chunks; most IDs shifted down by 1).",
     "chunk_ids_note": "chunk_ids are the chunk_num values VectorStore.build_index assigns, i.e. positions in chunk_text(parse_epub(book)); parse_epub strips the Project Gutenberg header and license first. They shift if the book file, parser or chunker settings change. run_eval.py checks the evidence quotes on every run and warns when they no longer sit in the listed chunks.",
     "groups": {"original 20": ["q01", "q02", "q03", "q04", "q05", "q06", "q07", "q08", "q09", "q10", "q11", "q12", "q13", "q14", "q15", "q16", "q17", "q18", "q19", "q20"], "new 15": ["q21", "q22", "q23", "q24", "q25", "q26", "q27", "q28", "q29", "q30", "q31", "q32", "q33", "q34", "q35"]},
@@ -26,7 +28,7 @@
       "chunk_ids": [0],
       "evidence": ["Thou madest us for Thyself, and our heart is restless, until it repose in Thee"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q02",
@@ -35,7 +37,7 @@
       "chunk_ids": [25],
       "evidence": ["A pear tree there was near our vineyard", "to fling to the very hogs"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q03",
@@ -44,7 +46,7 @@
       "chunk_ids": [35, 151],
       "evidence": ["This book of his contains an exhortation to philosophy", "since my nineteenth, when, upon the reading of Cicero's Hortensius"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q04",
@@ -53,7 +55,7 @@
       "chunk_ids": [47],
       "evidence": ["it is not possible that the son of these tears should perish"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q05",
@@ -62,7 +64,7 @@
       "chunk_ids": [47, 74],
       "evidence": ["For this space of nine years (from my nineteenth year to my eight-and-twentieth)", "all those nine years, wherein with unsettled mind I had been their disciple"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q06",
@@ -71,7 +73,7 @@
       "chunk_ids": [52, 53],
       "evidence": ["he was baptised, unknowing", "he was attacked again by the fever, and so departed"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q07",
@@ -80,7 +82,7 @@
       "chunk_ids": [75, 76],
       "evidence": ["utterly ignorant of liberal sciences, save grammar", "I began to despair of his opening and solving the difficulties which perplexed me"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Chunk 77 describes the aftermath ('My zeal for the writings of Manichaeus being thus blunted') without saying why, so it is not listed as gold."
     },
     {
@@ -90,7 +92,7 @@
       "chunk_ids": [78],
       "evidence": ["young men studied there more peacefully", "at Carthage there reigns among the scholars a most disgraceful and unruly licence"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q09",
@@ -99,7 +101,7 @@
       "chunk_ids": [92],
       "evidence": ["his voice and tongue were at rest"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Chunk 92 never names Ambrose, so this tests semantic rather than keyword retrieval."
     },
     {
@@ -109,7 +111,7 @@
       "chunk_ids": [101, 102],
       "evidence": ["into the Amphitheatre, during these cruel and deadly shows", "a mighty cry of the whole people striking him strongly"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q11",
@@ -118,7 +120,7 @@
       "chunk_ids": [139, 140],
       "evidence": ["Victorinus, sometime Rhetoric Professor of Rome", "he spoke of Victorinus himself, whom while at Rome he had most intimately known"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Chunks 141-145 continue Victorinus's conversion story; consider whether they should count as hits."
     },
     {
@@ -128,7 +130,7 @@
       "chunk_ids": [151],
       "evidence": ["Give me chastity and continency, only not yet"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q13",
@@ -137,7 +139,7 @@
       "chunk_ids": [160, 161],
       "evidence": ["Take up and read; Take up and read", "Not in rioting and drunkenness, not in chambering and wantonness"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q14",
@@ -146,7 +148,7 @@
       "chunk_ids": [171, 172],
       "evidence": ["We joined with us the boy Adeodatus, born after the flesh, of my sin", "He was not quite fifteen", "and we were baptised"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q15",
@@ -155,7 +157,7 @@
       "chunk_ids": [183],
       "evidence": ["the fifty-sixth year of her age, and the three-and-thirtieth of mine"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Chunk 174 also says she died at Ostia but gives no ages, so it is not listed as gold."
     },
     {
@@ -165,7 +167,7 @@
       "chunk_ids": [182],
       "evidence": ["this only I request, that you would remember me at the Lord's altar"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q17",
@@ -174,7 +176,7 @@
       "chunk_ids": [247],
       "evidence": ["If no one asks me, I know: if I wish to explain it to one that asketh, I know not"],
       "answerable": true,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q18",
@@ -183,7 +185,7 @@
       "chunk_ids": [],
       "evidence": [],
       "answerable": false,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Deliberately tempting: chunk 111 discusses her, so the model has related context but no name."
     },
     {
@@ -193,7 +195,7 @@
       "chunk_ids": [],
       "evidence": [],
       "answerable": false,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "The front matter says 'AD 401' (the date of the work), which a model might misread as a death date."
     },
     {
@@ -203,7 +205,7 @@
       "chunk_ids": [],
       "evidence": [],
       "answerable": false,
-      "needs_review": true
+      "needs_review": false
     },
     {
       "id": "q21",
@@ -212,7 +214,7 @@
       "chunk_ids": [100, 101, 161],
       "evidence": ["a likeness from the Circensian races occurred to me", "all the filths of the Circensian pastimes flew off from him", "him that is weak in the faith, receive"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: two parts of the book (Books VI and VIII)."
     },
     {
@@ -222,18 +224,18 @@
       "chunk_ids": [22, 177, 178],
       "evidence": ["rather by the resolution than the means of my father, who was but a poor freeman of Thagaste", "she had learnt not to resist an angry husband, not in deed only, but not even in word", "her own husband, towards the very end of his earthly life, did she gain unto Thee"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: two parts of the book (Books II and IX)."
     },
     {
       "id": "q23",
       "question": "What did Augustine find missing from Cicero's Hortensius, and what did he find missing from the books of the Platonists?",
       "reference_answer": "The Hortensius roused his love of wisdom, but the name of Christ was not in it, so it could not take full hold of him. In the books of the Platonists he found, in substance, that in the beginning was the Word and the Word was with God, but not that the Word was made flesh and dwelt among us, nor that Christ died for the ungodly.",
-      "chunk_ids": [36, 125, 126],
-      "evidence": ["this alone checked me thus unkindled, that the name of Christ was not in it", "But that the Word was made flesh, and dwelt among us, I read not there", "But that in due time He died for the ungodly"],
+      "chunk_ids": [36, 125, 126, 135],
+      "evidence": ["this alone checked me thus unkindled, that the name of Christ was not in it", "But that the Word was made flesh, and dwelt among us, I read not there", "But that in due time He died for the ungodly", "charity building upon the foundation of humility, which is Christ Jesus"],
       "answerable": true,
-      "needs_review": true,
-      "notes": "Type: two parts of the book (Books III and VII). Chunk 35 introduces the Hortensius and chunks 134-135 also discuss what the Platonist books contained; in the first 3-repeat run the app answered from those without any gold chunk. Check whether they should count as gold."
+      "needs_review": false,
+      "notes": "Type: two parts of the book (Books III and VII). Review 2026-11-12: chunk 135 added as gold (the Platonist books lacked 'charity building upon the foundation of humility, which is Christ Jesus'); chunks 35 and 134 were considered and not added."
     },
     {
       "id": "q24",
@@ -242,7 +244,7 @@
       "chunk_ids": [53, 55, 185, 186],
       "evidence": ["At this grief my heart was utterly darkened", "And thus from Thagaste, I came to Carthage", "we went and returned without tears", "I gave way to the tears which I before restrained"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: two parts of the book (Books IV and IX)."
     },
     {
@@ -252,7 +254,7 @@
       "chunk_ids": [111, 171, 172],
       "evidence": ["she returned to Afric, vowing unto Thee never to know any other man, leaving with me my son by her", "We joined with us the boy Adeodatus, born after the flesh, of my sin", "Soon didst Thou take his life from the earth"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: two parts of the book (Books VI and IX)."
     },
     {
@@ -262,7 +264,7 @@
       "chunk_ids": [14, 15],
       "evidence": ["the difficulty of a foreign tongue, dashed, as it were, with gall all the sweetness of Grecian fable", "a free curiosity has more force in our learning these things, than a frightful enforcement"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: worded differently from the book ('second language' and 'poems' for Greek and Homer)."
     },
     {
@@ -272,7 +274,7 @@
       "chunk_ids": [32],
       "evidence": ["Why is it, that man desires to be made sad, beholding doleful and tragical things"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: worded differently from the book ('theatre', 'sad stories' for stage-plays and tragical things)."
     },
     {
@@ -282,7 +284,7 @@
       "chunk_ids": [121, 122],
       "evidence": ["both were delivered at the same instant", "a lineage the most abject, a slavish condition"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: worded differently from the book ('horoscopes' for constellations and the 'so-called art')."
     },
     {
@@ -292,7 +294,7 @@
       "chunk_ids": [129, 131],
       "evidence": ["That evil then which I sought, whence it is, is not any substance", "found it to be no substance, but the perversion of the will"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: worded differently from the book ('wickedness', 'a real thing in its own right' for evil and substance). Chunks 84, 117 and 156 also discuss evil as a substance; in the first 3-repeat run the app answered correctly from them without any gold chunk. Check whether they should count as gold."
     },
     {
@@ -302,7 +304,7 @@
       "chunk_ids": [170],
       "evidence": ["Thou didst then torment me with pain in my teeth", "And this I wrote on wax, and gave it them to read"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: small specific detail (Book IX)."
     },
     {
@@ -312,7 +314,7 @@
       "chunk_ids": [164],
       "evidence": ["my lungs began to give way, amid too great literary labour"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: small specific detail (Book IX)."
     },
     {
@@ -322,7 +324,7 @@
       "chunk_ids": [175, 176],
       "evidence": ["she sipped a little with the tip of her lips", "calling her wine-bibber"],
       "answerable": true,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: small specific detail (Book IX)."
     },
     {
@@ -332,7 +334,7 @@
       "chunk_ids": [],
       "evidence": [],
       "answerable": false,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: unanswerable. Tempting: chunks 52-55 tell his story without a name, and chunk 53 mentions Orestes and Pylades."
     },
     {
@@ -342,7 +344,7 @@
       "chunk_ids": [],
       "evidence": [],
       "answerable": false,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: unanswerable. Tempting: a model may guess Ambrose, who appears later in the book."
     },
     {
@@ -352,7 +354,7 @@
       "chunk_ids": [],
       "evidence": [],
       "answerable": false,
-      "needs_review": true,
+      "needs_review": false,
       "notes": "Type: unanswerable. Tempting: a model may know the answer from outside the book."
     }
   ]
