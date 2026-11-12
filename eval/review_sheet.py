@@ -63,7 +63,7 @@ def latest_full_run():
     manifests = []
     for path in RESULTS_DIR.glob("results_*.json"):
         manifest = json.loads(path.read_text(encoding="utf-8"))
-        if not manifest.get("retrieval_only"):
+        if not manifest.get("retrieval_only") and manifest.get("complete", True):
             manifests.append((manifest["created"], path))
     if not manifests:
         sys.exit("No full run in eval/results/. Run `python -m eval.run_eval` first.")
@@ -202,16 +202,19 @@ def card(entry, group, q, chunks):
     shown = set(gold)
     flagged = [cid for cid in note_chunks(note) if cid not in shown and cid < len(chunks)]
     candidate_note = bool(re.search(r"should count as (gold|hits)", note))
+    reviewed = not entry.get("needs_review", True)
     if flagged:
-        title = "Candidate extra gold chunks (flagged in the notes)" if candidate_note else "Chunks mentioned in the notes"
+        title = ("Chunks the notes flagged (reviewed: not added to chunk_ids)" if candidate_note and reviewed else
+                 "Candidate extra gold chunks (flagged in the notes)" if candidate_note else "Chunks mentioned in the notes")
         boxes = []
         for cid in flagged:
             phrases, read = SUGGESTED.get(cid, ([], ""))
             title_ = f"Candidate chunk {cid}" if candidate_note else f"Chunk {cid}"
             boxes.append(chunk_box(cid, chunks, title_, [("sug", phrases)],
-                                   note=f"My read: {read}" if read else "", open_=candidate_note))
+                                   note=f"My read: {read}" if read else "", open_=candidate_note and not reviewed))
         hint = ('<p class="muted">Highlighted in blue: the passage I\'d look at. Add a chunk to chunk_ids if it '
-                'answers the question on its own.</p>' if candidate_note and any(c in SUGGESTED for c in flagged) else "")
+                'answers the question on its own.</p>'
+                if candidate_note and not reviewed and any(c in SUGGESTED for c in flagged) else "")
         parts.append(f'<div class="field"><div class="label">{title}</div>{hint}{"".join(boxes)}</div>')
         shown |= set(flagged)
     if q:

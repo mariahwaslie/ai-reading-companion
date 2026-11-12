@@ -233,7 +233,7 @@ python -m eval.report                                  # HTML report in eval/res
 python -m eval.review_sheet                            # golden-set review sheet in eval/results/
 ```
 
-A full run makes three model calls per question: the app's answer and two judge calls (315 calls for 35 questions × 3 repeats). Outputs go to `eval/results/`, which is git-ignored. The harness uses an exact search over the stored vectors, so runs are repeatable; the app itself uses Chroma's approximate index. See [eval/README.md](eval/README.md) for details.
+A full run makes three model calls per question: the app's answer and two judge calls (315 calls for 35 questions × 3 repeats). Each question's result is saved as soon as it is scored, so if a run stops partway (for example, when the API quota runs out), `python -m eval.run_eval --resume eval/results/results_<timestamp>.json` finishes it without repeating the saved questions. Outputs go to `eval/results/`, which is git-ignored. The harness uses an exact search over the stored vectors, so runs are repeatable; the app itself uses Chroma's approximate index. See [eval/README.md](eval/README.md) for details.
 
 ### Retrieval experiments
 
@@ -246,7 +246,33 @@ These were tested with retrieval-only runs against the current setup and not ado
 
 ### Results
 
-Pending golden-set review. Every golden-set entry is marked `needs_review` until it has been checked by hand.
+Against the golden set after its manual review (35 questions: 29 answerable, 6 unanswerable). The notes below say how each number was produced.
+
+| Metric | Result |
+| --- | --- |
+| hit@5 | 0.72 (21 of 29 answerable questions) |
+| hit@15 (a gold chunk reaches the model) | 0.83 (24 of 29) |
+| MRR@15 | 0.53 |
+| End-to-end passes | 27.7 of 35 (27–29) |
+| Faithfulness | 0.84 (0.83–0.87) |
+| Refusal rate on unanswerable questions | 61% (50–67%) |
+| Citation accuracy | 0.60 (0.58–0.63) |
+
+How these were produced:
+
+- **Retrieval** (hit@5, hit@15, MRR) comes from a retrieval-only run against the reviewed golden set. The eval's exact search gives the same ranking every time, so these have no range.
+- **Answer quality** (passes, faithfulness, refusal rate, citation accuracy) is the average over 3 full runs, with min–max in brackets. The app used `gpt-4.1-mini` at its default temperature, and `gpt-4.1` was the judge.
+- **Those runs predate the review.** The review changed only q23, adding chunk 135 to its gold chunks.
+  - Re-checking every answer in those runs against the reviewed gold chunks changes no pass/fail result.
+  - Citation accuracy was recomputed against the reviewed set.
+  - The chunks those runs sent to the model give the same hit@5 and hit@15 results as the retrieval run.
+  - A fresh 3-run evaluation against the reviewed set is still to do.
+- **Precision:** with 35 questions, one question moves a rate by about 3 percentage points. The judge is itself a model, so treat its verdicts as estimates. The HTML report shows its reasoning for every answer.
+
+Seven questions fail in most runs:
+
+- **4 retrieval misses:** the gold chunk never reaches the model. The book's opening line, for example, ranks 208th.
+- **3 generation problems:** two answers to unanswerable questions that draw on outside knowledge, and one two-part answer with unsupported claims.
 
 ## Key Implementation Details
 
@@ -271,7 +297,7 @@ This project highlights experience with:
 
 ## Current Status
 
-This is a deployed, functional application. It supports the core workflow from upload to citation-backed question answering, with room for continued production hardening. The golden set is awaiting a manual review before evaluation results are reported.
+This is a deployed, functional application. It supports the core workflow from upload to citation-backed question answering, with room for continued production hardening. The evaluation golden set has been reviewed by hand; see [Results](#results).
 
 ## Roadmap
 
@@ -285,7 +311,8 @@ Potential next improvements:
 - Handle malformed files and API errors more gracefully
 - Load the embedding model once per app process instead of once per session
 - Add tests for chunking, the `Agent` and prompt formatting
-- Finish the golden-set review and report evaluation results
+- Re-run the 3-run answer evaluation against the reviewed golden set
+- Reduce answers that use outside knowledge on questions the document can't answer
 
 ## Design Notes
 

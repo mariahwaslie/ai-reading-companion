@@ -39,6 +39,9 @@ python -m eval.run_eval --repeats 3 --label "what changed"
 # A few questions only
 python -m eval.run_eval --ids q09,q13,q18
 
+# Finish a run that stopped partway (e.g. the API quota ran out); saved questions aren't repeated
+python -m eval.run_eval --resume eval/results/results_<timestamp>.json
+
 # Re-judge a saved run's answers after changing judge.py, without new answers
 python -m eval.run_eval --rescore eval/results/results_<timestamp>.csv
 
@@ -70,7 +73,15 @@ The report needs matplotlib but none of the app's dependencies, so any Python wi
 /opt/homebrew/bin/python3.11 -m eval.report
 ```
 
-The run comparison uses every `results_*.json` manifest in `results/`, labelled with the run's `--label`.
+The run comparison uses every complete `results_*.json` manifest in `results/`, labelled with the run's `--label`.
+
+To take the retrieval numbers (hit@k, MRR, precision, gold-chunk ranks) from a different run than the answers, for example a retrieval-only run against a newer golden set, pass both:
+
+```bash
+/opt/homebrew/bin/python3.11 -m eval.report --run eval/results/results_<full run>.json --retrieval-run eval/results/retrieval_<run>.json
+```
+
+The report then says which numbers come from which run. If the full run was scored before the golden-set review, it also re-checks that run's outcomes against the reviewed gold chunks and reports any that would change.
 
 ## Retrieval experiments
 
@@ -94,7 +105,12 @@ python -m eval.run_eval --retrieval-only --hybrid
 
 ## Output
 
-Each run writes `eval/results/results_<timestamp>.csv` (`_r1`, `_r2`, ... with `--repeats`), plus a `results_<timestamp>.json` manifest with the label, judge model and file list. Each CSV has one row per question:
+Each run writes `eval/results/results_<timestamp>.csv` (`_r1`, `_r2`, ... with `--repeats`), plus a `results_<timestamp>.json` manifest.
+
+- **The manifest:** it records the label, the run's settings, the file list, and fingerprints of the golden set and app code.
+- **Rows are saved as they're scored:** each question's row is added to its CSV as soon as it's scored, and the manifest is marked complete at the end.
+- **`--resume`:** it continues an incomplete run with the same settings. It refuses to resume if the golden set or the app code (`core/`, `prompts/`) changed in between.
+- **Incomplete runs:** the report and review sheet ignore them. Each CSV has one row per question:
 
 | Column | Meaning |
 | --- | --- |

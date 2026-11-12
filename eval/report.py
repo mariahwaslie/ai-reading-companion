@@ -4,6 +4,10 @@ Run from the repo root with any Python that has matplotlib; the report reads onl
 the CSVs and the golden set, not the app's dependencies:
     python -m eval.report                                  # latest run -> eval/results/report.html
     python -m eval.report --run eval/results/results_X.json
+    python -m eval.report --run eval/results/results_X.json --retrieval-run eval/results/retrieval_Y.json
+
+--retrieval-run takes the retrieval numbers (hit@k, MRR, precision, gold-chunk ranks) from a separate,
+usually retrieval-only, run, e.g. one scored against a newer golden set; answer numbers stay from --run.
 """
 
 import argparse
@@ -65,6 +69,8 @@ def parse_args():
     p.add_argument("--run", type=Path, help="run manifest to report on (default: the latest full run)")
     p.add_argument("--golden", type=Path, default=EVAL_DIR / "golden_set.json")
     p.add_argument("--out", type=Path, default=RESULTS_DIR / "report.html")
+    p.add_argument("--retrieval-run", type=Path, metavar="MANIFEST",
+                   help="take retrieval metrics and gold-chunk ranks from this run instead of --run")
     p.add_argument("--png-dir", type=Path, help="also write each chart as a PNG here")
     return p.parse_args()
 
@@ -82,8 +88,8 @@ def load_runs():
     runs = []
     for path in sorted(RESULTS_DIR.glob("*.json")):
         manifest = json.loads(path.read_text(encoding="utf-8"))
-        if "csv_files" not in manifest or manifest.get("retrieval_only"):
-            continue
+        if "csv_files" not in manifest or manifest.get("retrieval_only") or not manifest.get("complete", True):
+            continue  # retrieval-only, or an interrupted run that hasn't been resumed yet
         _, reps = summary.load_run(path)
         runs.append({"path": path, "manifest": manifest, "reps": reps, "label": run_label(manifest)})
     return sorted(runs, key=lambda r: r["manifest"]["created"])
@@ -106,6 +112,23 @@ def display_rank(row):
         return exact, f"rank {exact}"
     # An exhaustive search ranks it inside 15, but the app's approximate top-15 query missed it.
     return DEPTH + 1, f"missed by the approximate search (exact rank {exact})"
+
+
+def outcome_changes(reps, golden):
+    """[(id, repeat, old, new)] for answers whose outcome changes when re-checked against the current gold chunks."""
+    gold = {e["id"]: e["chunk_ids"] for e in golden["entries"]}
+    changes = []
+    for n, rows in enumerate(reps, start=1):
+        for r in rows:
+            context = summary._ids(r.get("context_chunk_ids"))
+            if not context or r["id"] not in gold:
+                continue
+            status, _ = metrics.classify(r["answerable"], bool(set(gold[r["id"]]) & set(context)), r["faithfulness"],
+                                         relevance=r.get("relevance"), correctness=r.get("correctness") or None,
+                                         abstained=r.get("abstained"))
+            if status != r.get("status"):
+                changes.append((r["id"], n, r.get("status"), status))
+    return changes
 
 
 # ---------- charts ----------
@@ -161,13 +184,13 @@ def hit_curve_chart(groups, rows):
     return to_img(fig, "hit_at_k", "Line chart of hit rate at k from 1 to 15 for each question group")
 
 
-def rank_chart(per_q, ids):
+def rank_chart(per_q, ids, rank_rows):
     fig, ax = plt.subplots(figsize=(8, 0.27 * len(ids) + 1.1))
     style_axes(ax, "x")
     outcomes = set()
     for i, qid in enumerate(ids):
         q = per_q[qid]
-        value, miss_label = display_rank(q["row"])
+        value, miss_label = display_rank(rank_rows.get(qid, q["row"]))
         outcomes.add(q["majority"])
         ax.barh(i, min(value, RANK_CAP), height=0.56, color=OUTCOME_COLORS.get(q["majority"], MUTED))
         if miss_label:
@@ -261,17 +284,32 @@ def card(label, value, *subs):
     return f'<div class="card"><div class="card-label">{esc(label)}</div><div class="card-value">{esc(value)}</div>{sub_html}</div>'
 
 
-def cards_html(golden, reps):
+def group_summaries(golden, reps):
+    """({group: [summary per repeat]}, name of the all-questions group)."""
     groups = summary.groups_for(golden, reps[0])
     by_group = {name: [summary.summarize(summary.subset(rows, ids)) for rows in reps] for name, ids in groups.items()}
-    all_name = next((n for n in groups if n.startswith("all ")), list(groups)[-1])
-    overall = by_group[all_name]
-    n_runs = len(reps)
-    span = lambda key, digits=2: summary.format_spread(summary.spread(overall, key), digits)
+    return by_group, next((n for n in groups if n.startswith("all ")), list(groups)[-1])
 
-    def per_group(key, digits=2):
+
+def cards_html(golden, reps, retrieval_reps=None):
+    by_group, all_name = group_summaries(golden, reps)
+    by_group_r, _ = group_summaries(golden, retrieval_reps or reps)
+    overall, overall_r = by_group[all_name], by_group_r[all_name]
+    n_runs = len(reps)
+
+    def span(key, digits=2, source=None):
+        return summary.format_spread(summary.spread(source or overall, key), digits)
+
+    def per_group(key, digits=2, groups=None):
+        groups = groups or by_group
         return [f"{name}: {summary.format_spread(summary.spread(s, key), digits)}"
-                for name, s in by_group.items() if name != all_name and summary.spread(s, key)]
+                for name, s in groups.items() if name != all_name and summary.spread(s, key)]
+
+    def r_span(key):
+        return span(key, source=overall_r)
+
+    def r_groups(key):
+        return per_group(key, groups=by_group_r)
 
     def value_and_range(key, fmt):
         spread = summary.spread(overall, key)
@@ -290,20 +328,20 @@ def cards_html(golden, reps):
     questions = overall[0]["questions"]
 
     def ceiling(k):
-        value = overall[0].get(f"precision_ceiling@{k}")
+        value = overall_r[0].get(f"precision_ceiling@{k}")
         return f"best possible {value:.2f}" if value is not None else "not saved for this run"
 
     uncited = summary.spread(overall, "uncited")
     uncited_note = (f"{summary.format_spread(uncited, 1)} answerable answers cite no chunk"
                     if uncited and uncited[2] > 0 else "")
     retrieval = "".join([
-        card("hit@5", span("hit@5"), "gold chunk in the top 5", *per_group("hit@5")),
-        card("hit@15", span("hit@15"), "gold chunk among the 15 sent to the model", *per_group("hit@15")),
-        card("MRR@15", span("mrr"), "mean reciprocal rank", *per_group("mrr")),
-        card("Precision@5", span("precision@5"), "share of the top 5 that are gold", ceiling(5),
-             *per_group("precision@5")),
-        card("Precision@15", span("precision@15"), "share of the top 15 that are gold", ceiling(15),
-             *per_group("precision@15")),
+        card("hit@5", r_span("hit@5"), "gold chunk in the top 5", *r_groups("hit@5")),
+        card("hit@15", r_span("hit@15"), "gold chunk among the 15 sent to the model", *r_groups("hit@15")),
+        card("MRR@15", r_span("mrr"), "mean reciprocal rank", *r_groups("mrr")),
+        card("Precision@5", r_span("precision@5"), "share of the top 5 that are gold", ceiling(5),
+             *r_groups("precision@5")),
+        card("Precision@15", r_span("precision@15"), "share of the top 15 that are gold", ceiling(15),
+             *r_groups("precision@15")),
     ])
     answers = "".join([
         card("End-to-end passes", f"{passes_val} / {questions}", passes_rng, *per_group("passes", 1)),
@@ -368,7 +406,7 @@ def citation_cell(q):
     return f"{per_run} cited chunks hold the quote (per repeat)"
 
 
-def question_table(per_q, golden_entries):
+def question_table(per_q, golden_entries, rank_rows):
     rows_html = []
     for qid, q in per_q.items():
         row = q["row"]
@@ -377,7 +415,7 @@ def question_table(per_q, golden_entries):
         count = q["statuses"].count(majority)
         outcome = f"{majority}" + (f" ({count} of {n})" if count < n else "")
         if row["answerable"]:
-            value, miss_label = display_rank(row)
+            value, miss_label = display_rank(rank_rows.get(qid, row))
             rank = str(value) if not miss_label else (
                 "not in top 15" if miss_label == "> 15" else f"not in top 15 ({miss_label})")
             judged = tally(q["correctness"])
@@ -418,6 +456,7 @@ h2 { font-size: 18px; margin: 40px 0 6px; }
 .banner { display: flex; gap: 10px; align-items: flex-start; background: #fff6df; border: 1px solid #fab219;
           border-left-width: 6px; border-radius: 8px; padding: 12px 14px; margin: 20px 0; }
 .banner strong { display: block; }
+.banner.info { background: #eef5ff; border-color: #2a78d6; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 8px; }
 .cards-label { color: var(--ink2); font-size: 13px; font-weight: 600; margin: 20px 0 0; }
 .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 14px 16px; }
@@ -450,6 +489,9 @@ def build(args):
         sys.exit("No full runs with a manifest in eval/results/. Run `python -m eval.run_eval` first.")
     current = next((r for r in runs if args.run and r["path"].resolve() == args.run.resolve()), runs[-1])
     manifest, reps = current["manifest"], current["reps"]
+    retrieval_manifest, retrieval_reps = (summary.load_run(args.retrieval_run) if args.retrieval_run
+                                          else (manifest, reps))
+    rank_rows = {r["id"]: r for r in retrieval_reps[0]}
     per_q = summary.per_question(reps)
     answerable_ids = [qid for qid, q in per_q.items() if q["row"]["answerable"]]
     unreviewed = sum(1 for e in golden["entries"] if e.get("needs_review"))
@@ -464,18 +506,41 @@ def build(args):
                   f'<strong>Golden set not yet human-reviewed.</strong>'
                   f'{unreviewed} of {len(golden["entries"])} entries are still marked <code>needs_review</code>. '
                   f'The scores depend on reference answers and gold chunks a person hasn\'t checked yet.</div></div>')
+    elif golden["meta"].get("review") and not manifest.get("golden_review") and args.retrieval_run:
+        changes = outcome_changes(reps, golden)
+        recheck = ("Re-checking its outcomes against the reviewed gold chunks changes none of them." if not changes else
+                   "Re-checked against the reviewed gold chunks, these outcomes would change: "
+                   + "; ".join(f"{q} repeat {n}: {a} → {b}" for q, n, a, b in changes) + ".")
+        gold = {e["id"]: " ".join(map(str, e["chunk_ids"])) for e in golden["entries"] if e["answerable"]}
+        cites_current = all(r.get("evidence_chunk_ids") == gold.get(r["id"]) for rows in reps for r in rows
+                            if r["answerable"] and r["id"] in gold)
+        banner = (f'<div class="banner info" role="note"><span aria-hidden="true">ℹ️</span><div>'
+                  f'<strong>Retrieval and answer numbers come from two runs.</strong>'
+                  f'Retrieval (hit@k, MRR, precision and gold-chunk ranks) is from “{esc(retrieval_manifest.get("label"))}”, '
+                  f'scored against the golden set '
+                  f'{esc(retrieval_manifest.get("golden_review") or "draft")} with '
+                  f'{esc(retrieval_manifest.get("search") or "approximate")} search. Answers (passes, faithfulness, '
+                  f'relevance, correctness, refusal) are from “{esc(current["label"])}”, scored before the golden-set '
+                  f'review. Review changes: {esc(golden["meta"].get("review_changes", ""))} '
+                  f'{esc(recheck)} Citation accuracy was '
+                  f'{"recomputed against the reviewed set" if cites_current else "computed against the draft set"}.'
+                  f'</div></div>')
     elif golden["meta"].get("review") and not manifest.get("golden_review"):
         banner = (f'<div class="banner" role="note"><span aria-hidden="true">⚠️</span><div>'
                   f'<strong>This run was scored against the golden set before its review.</strong>'
                   f'The golden set was {esc(golden["meta"]["review"])}; rerun the eval to score against the '
                   f'reviewed set. {esc(golden["meta"].get("review_changes", ""))}</div></div>')
 
-    exact = manifest.get("search") == "exact"
+    exact = retrieval_manifest.get("search") == "exact"
     search_note = ("Retrieval used an exact search over every chunk, so it is identical in every run." if exact else
                    "Retrieval used the app's approximate Chroma index, which is rebuilt for every run, so a separate "
                    "run can rank a few chunks differently.")
-    repeats_note = (f"Averaged over {n_runs} repeats; ranges show min–max. The repeats share one vector index, so "
-                    f"their retrieval numbers are identical. " if n_runs > 1 else "Single run. ") + search_note
+    if args.retrieval_run:
+        repeats_note = (f"Answer numbers are averaged over {n_runs} repeats; ranges show min–max. " if n_runs > 1
+                        else "") + search_note
+    else:
+        repeats_note = (f"Averaged over {n_runs} repeats; ranges show min–max. The repeats share one vector index, "
+                        f"so their retrieval numbers are identical. " if n_runs > 1 else "Single run. ") + search_note
     no_p15 = [r["label"] for r in runs if not any(summary.summarize(rows).get("precision@15") is not None
                                                   for rows in r["reps"])]
     def names(labels):
@@ -506,10 +571,11 @@ def build(args):
 <p class="meta">Run: <strong>{esc(current["label"])}</strong> · {esc(manifest["created"].replace("T", " "))}
  · {esc(manifest.get("questions", len(reps[0])))} questions · judge {esc(manifest.get("judge_model") or "-")}
  · book: {esc(golden["meta"].get("book_title", ""))}
- · golden set: {esc(manifest.get("golden_review") or "draft (before review)")}</p>
+ · golden set: {esc(manifest.get("golden_review") or "draft (before review)")}
+{f' · retrieval: <strong>{esc(retrieval_manifest.get("label"))}</strong> ({esc(retrieval_manifest["created"].replace("T", " "))})' if args.retrieval_run else ""}</p>
 {banner}
 <p class="caption">{esc(repeats_note)}</p>
-{cards_html(golden, reps)}
+{cards_html(golden, reps, retrieval_reps if args.retrieval_run else None)}
 <p class="caption" style="margin-top:12px">Precision@k is the share of the top k chunks that are gold chunks.
 Most questions have only one to three gold chunks, so even perfect retrieval stays well below 1; compare it with
 the best possible value. Citation accuracy is the share of the chunks an answer cites (for example “(Chunk 47)”)
@@ -520,14 +586,14 @@ gaps in the golden set's gold chunks lower it too. Neither metric affects pass/f
 <h2>Hit rate by k</h2>
 <p class="caption">Share of answerable questions whose gold chunk is in the top k results of the app's own retriever.
 The app sends the top 15 chunks to the model, so k = 15 is the ceiling for a correct, grounded answer.</p>
-<figure>{hit_curve_chart(groups, reps[0])}</figure>
+<figure>{hit_curve_chart(groups, retrieval_reps[0])}</figure>
 
 <h2>Where the gold chunk ranks</h2>
 <p class="caption">Rank of the first gold chunk for each answerable question (unanswerable questions have none).
 Bars past the line never reach the model. Ranks beyond 50 are capped and labelled with their true rank.
 Color shows the question's majority outcome; a green bar past the line passed without its gold chunk, which
 usually means another chunk also holds the answer (see the table). {esc(flips_note)}</p>
-<figure>{rank_chart(per_q, answerable_ids)}</figure>
+<figure>{rank_chart(per_q, answerable_ids, rank_rows)}</figure>
 
 <h2>Faithfulness per question</h2>
 <p class="caption">Share of each answer's claims that the retrieved chunks support, averaged over repeats; whiskers
@@ -544,7 +610,7 @@ show min–max. A question fails below {metrics.FAITHFULNESS_MIN}. "No factual c
 <h2>Every question</h2>
 <p class="caption">Rows are colored by majority outcome. Faithfulness shows the average with (min–max) when
 repeats disagree.</p>
-{question_table(per_q, entries)}
+{question_table(per_q, entries, rank_rows)}
 
 <footer>Generated {esc(datetime.now().strftime("%Y-%m-%d %H:%M"))} by <code>python -m eval.report</code> from
 {esc(", ".join(manifest["csv_files"]))}.</footer>
