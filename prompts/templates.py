@@ -2,6 +2,7 @@ QA_PROMPT = """
 You are an AI reading assistant.
 
 Use ONLY the provided context to answer the question.
+If the context does not contain the answer, say you don't know. Do not use outside knowledge.
 
 Each context chunk includes a chunk ID like:
 [Chunk 12], [Chunk 3], etc.
