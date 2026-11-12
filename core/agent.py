@@ -1,13 +1,8 @@
-from .vectorstore import VectorStore
 from prompts.templates import QA_PROMPT
 import logging
 import os
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
-
-from .parser import parse_epub
-from .chunker import chunk_text
-from .embeddings import embed_chunks
 
 load_dotenv()
 
