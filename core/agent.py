@@ -1,14 +1,19 @@
 from .vectorstore import VectorStore
 from prompts.templates import QA_PROMPT
+import logging
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
 from .parser import parse_epub
 from .chunker import chunk_text
 from .embeddings import embed_chunks
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+UNAVAILABLE_MESSAGE = "The answer service is unavailable right now. Please try again later."
 
 
 class Agent:
@@ -48,11 +53,16 @@ class Agent:
 
         )
 
-        response = self.client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt
+        try:
+            response = self.client.responses.create(
+                model="gpt-4.1-mini",
+                input=prompt
 
-        )
+            )
+        except OpenAIError:
+            # Quota, outage, network or key problems: show a friendly message, log the details to the console.
+            logger.exception("OpenAI request failed")
+            return UNAVAILABLE_MESSAGE
 
         return response.output[0].content[0].text
 

@@ -102,6 +102,7 @@ ai-reading-companion/
 |   `-- templates.py        # QA_PROMPT (used); SUMMARY_PROMPT and CHARACTER_PROMPT (not wired in yet)
 |-- eval/                   # Evaluation harness; see eval/README.md
 |-- tests/
+|   |-- test_agent.py       # Friendly message when the OpenAI call fails
 |   |-- test_parser.py      # Parser unit tests
 |   `-- test_vectorstore.py # Session-isolation tests for the vector store
 |-- sample_books/           # Local test books (git-ignored)
@@ -129,7 +130,7 @@ Chunks, vectors and a `chunk_num` for each are stored in an in-memory ChromaDB c
 
 ### 5. Answer Generation
 
-`Agent.generate_answer` formats the retrieved chunks as `[Chunk N]: text`, fills `QA_PROMPT`, and makes one call to `gpt-4.1-mini` through the Responses API at the default temperature. The prompt tells the model to use only the provided context, to say it doesn't know when the context doesn't contain the answer, and to cite chunk IDs such as "(Chunk 12)". The answer is shown as returned.
+`Agent.generate_answer` formats the retrieved chunks as `[Chunk N]: text`, fills `QA_PROMPT`, and makes one call to `gpt-4.1-mini` through the Responses API at the default temperature. The prompt tells the model to use only the provided context, to say it doesn't know when the context doesn't contain the answer, and to cite chunk IDs such as "(Chunk 12)". The answer is shown as returned. If the OpenAI call fails (for example, no credits, an outage or a bad key), the app shows "The answer service is unavailable right now. Please try again later." and logs the error to the console.
 
 ## Try It Online
 
@@ -201,11 +202,12 @@ python -m unittest discover -s tests   # app tests
 python -m unittest eval.test_metrics   # evaluation metric tests
 ```
 
+- `tests/test_agent.py` (1 test): a failing OpenAI call (mocked) returns the friendly "unavailable" message instead of raising, and the real error is logged.
 - `tests/test_parser.py` (7 tests): text cleanup; PDF page joining and skipping pages without text; EPUB text extraction, spacing between HTML elements, and skipping unreadable or non-document items. It uses fake PDF and EPUB objects, so no files are needed.
 - `tests/test_vectorstore.py` (3 tests): two sessions get separate collections, can't see each other's chunks, and a new upload in one session leaves the other's index alone. It uses a stand-in encoder, so no model download is needed.
 - `eval/test_metrics.py` (14 tests): retrieval, citation and pass/fail scoring used by the evaluation harness.
 
-Not covered yet: chunking, Gutenberg boilerplate removal, `Agent` and prompt formatting, and the Streamlit UI.
+Not covered yet: chunking, Gutenberg boilerplate removal, prompt formatting, and the Streamlit UI.
 
 ## Evaluation
 
@@ -308,7 +310,7 @@ Potential next improvements:
 - Add page numbers or chapter-level citations, and show the cited text
 - Wire the summary and character templates into the UI
 - Stream answers as they generate
-- Handle malformed files and API errors more gracefully
+- Handle malformed files more gracefully
 - Load the embedding model once per app process instead of once per session
 - Add tests for chunking, the `Agent` and prompt formatting
 - Re-run the 3-run answer evaluation against the reviewed golden set
