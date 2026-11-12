@@ -6,6 +6,7 @@ Run from the repo root:
     python -m eval.run_eval --retrieval-only        # retriever only, no API calls
     python -m eval.run_eval --rescore eval/results/results_X.csv   # re-judge saved answers
     python -m eval.run_eval --show-chunks 47,74     # print chunks to check golden entries
+    python -m eval.run_eval --resume eval/results/results_X.json    # finish an interrupted run
     python -m eval.run_eval --backfill eval/results/results_X.csv   # add newer metric columns to old CSVs
 
 Retrieval experiments (eval only; the app is unchanged):
@@ -13,6 +14,9 @@ Retrieval experiments (eval only; the app is unchanged):
     python -m eval.run_eval --retrieval-only --chunk-size 1000 --chunk-overlap 150 --golden eval/results/golden_set_1000_150.json
     python -m eval.run_eval --retrieval-only --rerank          # cross-encoder over the top 50, keep 15
     python -m eval.run_eval --retrieval-only --hybrid          # BM25 + vectors, reciprocal rank fusion
+
+Each question's row is written to the CSV as soon as it is scored, so an interrupted run (for example,
+an API quota error) keeps its finished questions and --resume picks up where it stopped.
 
 The app's own code (parser, chunker, VectorStore, Agent) is used unchanged. The one difference is
 that the nearest-neighbour lookup under VectorStore.search is exact here (see ExactSearch), so
@@ -42,6 +46,10 @@ RETRIEVAL_KS = (1, 3, 5)
 # when a passage has none of them; these fall back to spaces, then characters.
 FALLBACK_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 DEFAULT_RERANKER = "BAAI/bge-reranker-base"
+# Options that shape a run; saved in its manifest so --resume continues with exactly the same settings.
+RUN_OPTIONS = ("golden", "book", "retrieval_only", "repeats", "label", "judge_model", "depth", "ids",
+               "gold_from_evidence", "approximate_search", "chunk_size", "chunk_overlap", "rerank",
+               "reranker_model", "candidates", "hybrid", "rrf_k")
 # For BM25 in --hybrid: common English function words, dropped from chunks and questions alike.
 STOPWORDS = frozenset("""a about after all also am an and any are as at be been but by can could did do does
 for from had has have he her him his how i if in into is it its me my no not of on or our she so some such than
@@ -82,6 +90,8 @@ def parse_args():
     p.add_argument("--backfill", type=Path, nargs="+", metavar="CSV",
                    help="add the precision@k and citation columns to saved results CSVs, in place (no API calls)")
     p.add_argument("--show-chunks", help="comma-separated chunk ids to print, then exit")
+    p.add_argument("--resume", type=Path, metavar="MANIFEST",
+                   help="finish an interrupted run, reusing its saved settings and skipping saved questions")
     x = p.add_argument_group("retrieval experiments (eval only)")
     x.add_argument("--chunk-size", type=int, help="chunk with this size instead of the app's chunker, using "
                                                   "fallback separators " + repr(FALLBACK_SEPARATORS))
@@ -98,6 +108,10 @@ def parse_args():
                         "(needs `pip install rank-bm25`)")
     x.add_argument("--rrf-k", type=int, default=60, help="reciprocal rank fusion constant (default 60)")
     args = p.parse_args()
+    if args.resume:
+        if args.backfill or args.rescore or args.remap_golden or args.show_chunks:
+            p.error("--resume can't be combined with --backfill, --rescore, --remap-golden or --show-chunks")
+        restore_options(args, p)
     if args.hybrid and args.rerank:
         p.error("--hybrid and --rerank are separate experiments; use one at a time")
     if (args.chunk_size is None) != (args.chunk_overlap is None):
@@ -107,6 +121,64 @@ def parse_args():
     if args.repeats < 1:
         p.error("--repeats must be at least 1")
     return args
+
+
+def restore_options(args, parser):
+    """Load an interrupted run's manifest and copy its saved run options onto args."""
+    if not args.resume.exists():
+        parser.error(f"--resume: {args.resume} not found")
+    manifest = json.loads(args.resume.read_text(encoding="utf-8"))
+    if manifest.get("complete", True):
+        parser.error(f"{args.resume.name} is already complete; nothing to resume")
+    for key, value in manifest["options"].items():
+        setattr(args, key, Path(value) if key in ("golden", "book") and value else value)
+    args.resume_manifest = manifest
+
+
+def run_options(args):
+    return {key: str(Path(value).resolve()) if isinstance(value, Path) else value
+            for key in RUN_OPTIONS for value in [getattr(args, key)]}
+
+
+def shown(path):
+    """A path relative to the repo when it's inside it, for messages and manifests."""
+    path = Path(path).resolve()
+    return path.relative_to(REPO_ROOT) if path.is_relative_to(REPO_ROOT) else path
+
+
+def fingerprint(paths):
+    """sha256 over files' paths and bytes, to tell whether they changed between starting and resuming a run."""
+    digest = hashlib.sha256()
+    for path in sorted(paths):
+        digest.update(path.relative_to(REPO_ROOT).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def app_fingerprint():
+    return fingerprint([*REPO_ROOT.glob("core/*.py"), *REPO_ROOT.glob("prompts/*.py")])
+
+
+def saved_ids(path):
+    """Ids of the questions already written to a results CSV."""
+    if not path.exists():
+        return set()
+    with path.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames and reader.fieldnames != CSV_COLUMNS:
+            sys.exit(f"{path.name} has different columns from this version of run_eval.py; can't append to it")
+        return {row["id"] for row in reader}
+
+
+def append_row(row, path):
+    """Add one question's row to a results CSV, writing the header first if the file is new."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    new = not path.exists() or path.stat().st_size == 0
+    with path.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS, restval="", extrasaction="ignore")
+        if new:
+            writer.writeheader()
+        writer.writerow(row)
 
 
 def normalize(text):
@@ -518,7 +590,7 @@ def print_summary(golden, runs, depth, judge_model, warnings, out_paths, search=
         print("\nPass/fail changed between repeats: " + (", ".join(
             f"{qid} ({' / '.join(q['statuses'])})" for qid, q in flipped) or "none"))
 
-    print("\nResults: " + ", ".join(str(p.relative_to(REPO_ROOT)) for p in out_paths))
+    print("\nResults: " + ", ".join(str(shown(p)) for p in out_paths))
     if warnings:
         print(f"{len(warnings)} golden-set warning(s) printed above; retrieval scores can't be trusted until they're fixed.")
     unreviewed = sum(1 for r in runs[0] if r["needs_review"])
@@ -543,14 +615,16 @@ def backfill(paths, golden, book_path):
         return chunkings[name]
 
     def consistent(rows, normalized):
-        # Every evidence quote must sit in one of the gold chunks the run was scored against.
+        # Every gold chunk the run was scored against must hold one of the entry's evidence quotes.
+        # (Checked this way round so quotes added to the golden set later, e.g. in its review, don't count
+        # against a run that predates them.)
         for row in rows:
             entry = entries.get(row["id"])
             if entry is None:
                 return False
-            gold = [int(x) for x in row["gold_chunk_ids"].split()]
-            for quote in map(normalize, entry["evidence"]):
-                if not any(g < len(normalized) and quote in normalized[g] for g in gold):
+            quotes = [normalize(q) for q in entry["evidence"]]
+            for g in (int(x) for x in row["gold_chunk_ids"].split()):
+                if g >= len(normalized) or not any(q in normalized[g] for q in quotes):
                     return False
         return True
 
@@ -610,7 +684,7 @@ def rescore(args, golden, gold, chunks, judge, store):
         print(f"  {qid}  faithfulness {fmt(f0, n0)} -> {fmt(f1, n1)}   status {s0} -> {s1}")
         if unsupported and s0 != s1:
             print(f"        unsupported: {unsupported}")
-    print(f"\nRe-scored results: {out.relative_to(REPO_ROOT)}")
+    print(f"\nRe-scored results: {shown(out)}")
 
 
 def main():
@@ -683,26 +757,68 @@ def main():
         rescore(args, golden, gold, chunks, judge, store)
         return
 
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    prefix = "retrieval" if args.retrieval_only else "results"
-    runs, out_paths = [], []
-    for rep in range(1, args.repeats + 1):
-        if args.repeats > 1:
-            print(f"\n=== Repeat {rep} of {args.repeats} ===")
-        rows = []
-        for n, entry in enumerate(entries, start=1):
-            print(f"[{n}/{len(entries)}] {entry['id']}  {entry['question']}")
-            rows.append(evaluate_entry(entry, gold[entry["id"]], evidence[entry["id"]], store, len(chunks),
-                                       agent, judge, args.depth))
-        suffix = f"_r{rep}" if args.repeats > 1 else ""
-        out_path = RESULTS_DIR / f"{prefix}_{stamp}{suffix}.csv"
-        write_csv(rows, out_path)
-        runs.append(rows)
-        out_paths.append(out_path)
+    golden_sha = hashlib.sha256(args.golden.read_bytes()).hexdigest()
+    app_sha = app_fingerprint()
+    if args.resume:
+        manifest_path, manifest = args.resume, args.resume_manifest
+        if manifest["golden_sha256"] != golden_sha:
+            sys.exit("The golden set has changed since this run started; start a new run instead of resuming.")
+        if manifest["app_sha256"] != app_sha:
+            sys.exit("The app code (core/, prompts/) has changed since this run started; start a new run instead.")
+        if [e["id"] for e in entries] != manifest["question_ids"]:
+            sys.exit("The run's questions no longer match the golden set; start a new run instead.")
+        if args.approximate_search:
+            print("WARNING: resuming rebuilds Chroma's approximate index, so retrieval for the remaining "
+                  "questions may differ slightly from the first part of the run.")
+    else:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        prefix = "retrieval" if args.retrieval_only else "results"
+        manifest_path = RESULTS_DIR / f"{prefix}_{stamp}.json"
+        csv_names = [f"{prefix}_{stamp}{f'_r{rep}' if args.repeats > 1 else ''}.csv"
+                     for rep in range(1, args.repeats + 1)]
+        manifest = {
+            "label": args.label,
+            "created": datetime.now().isoformat(timespec="seconds"),
+            "complete": False,
+            "retrieval_only": args.retrieval_only,
+            "repeats": args.repeats,
+            "questions": len(entries),
+            "options": run_options(args),
+            "question_ids": [e["id"] for e in entries],
+            "golden_sha256": golden_sha,
+            "app_sha256": app_sha,
+            "csv_files": csv_names,
+        }
 
-    manifest = {
-        "label": args.label,
-        "created": datetime.now().isoformat(timespec="seconds"),
+    def write_manifest():
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    write_manifest()
+
+    out_paths = [RESULTS_DIR / name for name in manifest["csv_files"]]
+    try:
+        for rep, out_path in enumerate(out_paths, start=1):
+            done = saved_ids(out_path)
+            if args.repeats > 1:
+                print(f"\n=== Repeat {rep} of {args.repeats} ===" + (f" ({len(done)} already saved)" if done else ""))
+            for n, entry in enumerate(entries, start=1):
+                if entry["id"] in done:
+                    continue
+                print(f"[{n}/{len(entries)}] {entry['id']}  {entry['question']}")
+                row = evaluate_entry(entry, gold[entry["id"]], evidence[entry["id"]], store, len(chunks),
+                                     agent, judge, args.depth)
+                append_row(row, out_path)
+    except BaseException:
+        saved = sum(len(saved_ids(p)) for p in out_paths)
+        print(f"\nStopped with {saved} of {len(entries) * len(out_paths)} question results saved. Finish this run "
+              f"with:\n    python -m eval.run_eval --resume {shown(manifest_path)}\n")
+        raise
+    runs = [summary.load_rows(p) for p in out_paths]
+
+    manifest.update({
+        "complete": True,
+        "completed": datetime.now().isoformat(timespec="seconds"),
         "retrieval_only": args.retrieval_only,
         "judge_model": None if args.retrieval_only else args.judge_model,
         "repeats": args.repeats,
@@ -711,21 +827,20 @@ def main():
         "chunking": chunking_label(args),
         "chunk_stats": stats,
         "reranker": f"{args.reranker_model}, top {args.candidates} -> {args.depth}" if reranker else None,
-        "rerank_latency": reranker.latency() if reranker else None,
+        "rerank_latency": reranker.latency() if reranker and reranker.rerank_seconds else None,
         "hybrid": f"BM25 (rank_bm25 Okapi) + vectors, reciprocal rank fusion k={args.rrf_k}" if hybrid else None,
-        "hybrid_latency": hybrid.latency() if hybrid else None,
-        "csv_files": [p.name for p in out_paths],
-        "golden_set": str(args.golden.resolve().relative_to(REPO_ROOT)),
+        "hybrid_latency": hybrid.latency() if hybrid and hybrid.added_seconds else None,
+        "golden_set": str(shown(args.golden)),
         "golden_review": golden["meta"].get("review"),
-    }
-    (RESULTS_DIR / f"{prefix}_{stamp}.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    })
+    write_manifest()
     print_summary(golden, runs, args.depth, args.judge_model, warnings, out_paths, search)
-    if reranker:
+    if reranker and reranker.rerank_seconds:
         lat = reranker.latency()
         print(f"Re-ranking {args.candidates} chunks per question on {lat['device']}: {lat['rerank_ms']['mean']} ms "
               f"mean, {lat['rerank_ms']['median']} ms median, {lat['rerank_ms']['max']} ms max "
               f"(first-stage search {lat['first_stage_ms']['mean']} ms mean)")
-    if hybrid:
+    if hybrid and hybrid.added_seconds:
         lat = hybrid.latency()
         print(f"Hybrid: BM25 index built in {lat['bm25_index_ms']} ms; BM25 + fusion add {lat['added_ms']['mean']} ms "
               f"per question (median {lat['added_ms']['median']}, max {lat['added_ms']['max']})")
