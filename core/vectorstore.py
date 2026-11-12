@@ -1,15 +1,21 @@
+import uuid
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 
 class VectorStore:
-    def __init__(self, model_name = "BAAI/bge-base-en-v1.5"):
+    def __init__(self, model_name = "BAAI/bge-base-en-v1.5", collection_name=None):
         self.model = SentenceTransformer(model_name)
-        # in-memory DB 
+        # in-memory DB
         self.client = chromadb.Client()
 
-        # single collection = one book at a time (or reset per upload)
+        # One collection per VectorStore, holding one book at a time (reset per upload).
+        # In-memory Chroma clients in the same process share their collections, and app.py
+        # creates one VectorStore per Streamlit session, so each instance gets a unique name;
+        # otherwise one user's upload would replace every other user's book.
+        self.collection_name = collection_name or f"book_{uuid.uuid4().hex}"
         self.collection = self.client.get_or_create_collection(
-            name="book"
+            name=self.collection_name
             )
     def build_index(self, chunks):
         existing = self.collection.get()
