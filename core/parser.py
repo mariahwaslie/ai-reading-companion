@@ -9,6 +9,20 @@ def clean_text(text: str):
     # Remove extra whitespace and newlines
     return " ".join(text.split())
 
+# Project Gutenberg books wrap the text in "*** START OF THE PROJECT GUTENBERG EBOOK ... ***"
+# and "*** END OF THE PROJECT GUTENBERG EBOOK ... ***" markers.
+GUTENBERG_START = re.compile(r"\*\*\*\s*START OF (?:THE|THIS) PROJECT GUTENBERG E(?:BOOK|TEXT).*?\*\*\*", re.IGNORECASE | re.DOTALL)
+GUTENBERG_END = re.compile(r"\*\*\*\s*END OF (?:THE|THIS) PROJECT GUTENBERG E(?:BOOK|TEXT)", re.IGNORECASE)
+
+def strip_gutenberg_boilerplate(text: str) -> str:
+    """Drop the Project Gutenberg header and license text. Text without the markers is returned unchanged."""
+    start = GUTENBERG_START.search(text)
+    begin = start.end() if start else 0
+    end = GUTENBERG_END.search(text, begin)
+    if not start and not end:
+        return text
+    return text[begin:end.start() if end else len(text)].strip()
+
 def parse_pdf(filepath: str) -> str:
     """Extract all text from a PDF file."""
     reader = PdfReader(filepath)
@@ -19,7 +33,7 @@ def parse_pdf(filepath: str) -> str:
             text = re.sub(r'\s+', ' ', text).strip() # Normalize whitespace
             if text:
                 pages.append(text) # add to pages 
-    return "\n\n".join(pages) # combines all the pages and then returns them 
+    return strip_gutenberg_boilerplate("\n\n".join(pages)) # combines all the pages and then returns them
 
 #parse epub files 
 def parse_epub(filepath: str):
@@ -39,7 +53,7 @@ def parse_epub(filepath: str):
             except Exception:
                 # skip anything broken or non-decodable
                 continue
-    return "\n\n".join(chapters)
+    return strip_gutenberg_boilerplate("\n\n".join(chapters))
 
 
 if __name__ == "__main__":
